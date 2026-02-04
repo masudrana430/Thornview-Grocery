@@ -1,5 +1,5 @@
 {
-  "name": "b12-a10---copy---server",
+  "name": "Thornview-Grocery",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -19,6 +19,7 @@
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "firebase-admin": "^13.6.0",
+    "fly": "^4.6.16",
     "jsonwebtoken": "^9.0.3",
     "mongodb": "^7.0.0",
     "multer": "^2.0.2",
