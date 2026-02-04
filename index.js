@@ -19,6 +19,7 @@ const cookie = require("cookie");
 
 
 const serviceAccount = require("./sarviceKey.json");
+// const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON || "{}");
 const { uploadRouter } = require("./chat/uploadRouter");
 const { adminChatRouter } = require("./chat/adminChatRouter");
 
