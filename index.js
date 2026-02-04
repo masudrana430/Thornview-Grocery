@@ -9,7 +9,7 @@ const admin = require("firebase-admin");
 require("dotenv").config();
 // const Stripe = require("stripe");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-const STRIPE_CURRENCY = (process.env.STRIPE_CURRENCY || "bdt").toLowerCase();
+// const STRIPE_CURRENCY = (process.env.STRIPE_CURRENCY || "bdt").toLowerCase();
 
 const http = require("http");
 const { Server } = require("socket.io");
@@ -23,9 +23,20 @@ const cookie = require("cookie");
 
 // const serviceAccount = require("./sarviceKey.json");
 // const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON || "{}");
-const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_JSON
-  ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON)
-  : require("./sarviceKey.json");
+// const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_JSON
+//   ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON)
+//   : require("./sarviceKey.json");
+
+let serviceAccount;
+
+if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+  serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+  if (serviceAccount.private_key) {
+    serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
+  }
+} else {
+  throw new Error("Missing FIREBASE_SERVICE_ACCOUNT_JSON");
+}
 
 
 const { uploadRouter } = require("./chat/uploadRouter");
