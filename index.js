@@ -58,9 +58,9 @@ const upload = multer({
 const requiredEnv = ["DB_USERNAME", "DB_PASSWORD", "JWT_ACCESS_SECRET", "JWT_REFRESH_SECRET"];
 for (const k of requiredEnv) {
   if (!process.env[k]) {
-    console.error(`❌ Missing env: ${k}`);
-    process.exit(1);
-  }
+  throw new Error(`Missing env: ${k}`);
+}
+
 }
 
 // ------------------- Middleware -------------------
