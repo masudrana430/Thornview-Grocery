@@ -46,7 +46,7 @@ for (const k of requiredEnv) {
 // ------------------- Middleware -------------------
 const allowedOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(",").map((s) => s.trim())
-  : ["http://localhost:5173", "http://localhost:5174"];
+  : ["http://localhost:5173", "http://localhost:5174", "https://thornview-grocery.netlify.app"];
 
 app.use(
   cors({
