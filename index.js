@@ -31,12 +31,14 @@ let serviceAccount;
 
 if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
   serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+
   if (serviceAccount.private_key) {
     serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
   }
 } else {
-  throw new Error("Missing FIREBASE_SERVICE_ACCOUNT_JSON");
+  serviceAccount = require("./sarviceKey.json"); // local fallback
 }
+
 
 
 const { uploadRouter } = require("./chat/uploadRouter");
