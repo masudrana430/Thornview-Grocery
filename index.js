@@ -510,8 +510,15 @@ function adminOnlineCount() {
 
 
 
+
 // ------------------- Routes -------------------
+// Health Check after deployments
 app.get("/health", (_req, res) => res.json({ ok: true }));
+// Basic root route(for testing)
+app.get("/", (req, res) => {
+  res.type("text").send("Thomview Grocery API is running ✅");
+});
+
 
 /**
  * POST /api/auth/login
