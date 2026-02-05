@@ -4104,7 +4104,8 @@ let dbInitPromise = null;
 async function initDbOnce() {
   if (!dbInitPromise) {
     dbInitPromise = (async () => {
-      await client.connect(); // ✅ IMPORTANT: connect here (don’t keep it commented)
+      // await client.connect(); 
+      // ✅ IMPORTANT: connect here (don’t keep it commented)
       db = client.db(process.env.DB_NAME || "thomview");
 
       usersCollection = db.collection("users");
