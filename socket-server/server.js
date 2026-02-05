@@ -27,7 +27,7 @@ let dbInitPromise = null;
 async function initDbOnce() {
     if (!dbInitPromise) {
         dbInitPromise = (async () => {
-            // await client.connect();
+            await client.connect();
             db = client.db(process.env.DB_NAME || "thomview");
             usersCollection = db.collection("users");
             conversationsCollection = db.collection("chat_conversations");
@@ -51,8 +51,14 @@ io.use(async (socket, next) => {
         await initDbOnce();
 
         // ✅ token from client auth (works cross-domain)
-        const token = socket.handshake.auth?.token;
+        const token =
+            socket.handshake.auth?.token ||
+            (socket.handshake.headers.authorization?.startsWith("Bearer ")
+                ? socket.handshake.headers.authorization.slice(7)
+                : null);
+
         if (!token) return next(new Error("NO_TOKEN"));
+
 
         const payload = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
 

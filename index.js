@@ -3336,6 +3336,9 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 
+
+
+
 // ------------------- SOCKET.IO SETUP for deploying  -------------------
 // ------------------- Socket.IO -------------------
 // AFTER app.use(cors...), app.use(cookieParser()), routes, etc.
@@ -3374,8 +3377,8 @@ if (!isVercel) {
   // ✅ auth via accessToken cookie
   io.use((socket, next) => {
     try {
-      const cookies = parseCookies(socket.handshake.headers?.cookie || "");
-      const token = cookies.accessToken;
+      // const cookies = parseCookies(socket.handshake.headers?.cookie || "");
+      // const token = cookies.accessToken;
       if (!token) return next(new Error("NO_TOKEN"));
 
       const payload = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
@@ -4104,7 +4107,7 @@ let dbInitPromise = null;
 async function initDbOnce() {
   if (!dbInitPromise) {
     dbInitPromise = (async () => {
-      // await client.connect(); 
+      await client.connect(); 
       // ✅ IMPORTANT: connect here (don’t keep it commented)
       db = client.db(process.env.DB_NAME || "thomview");
 
