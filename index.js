@@ -3377,8 +3377,12 @@ if (!isVercel) {
   // ✅ auth via accessToken cookie
   io.use((socket, next) => {
     try {
-      // const cookies = parseCookies(socket.handshake.headers?.cookie || "");
-      // const token = cookies.accessToken;
+      //sould be commented if it use in socket-server server.js 
+      //If your socket server is on a different domain (Render) than your API (Vercel), the cookie accessToken set by the API will not be sent to the socket server (cross-domain). So this will fail:
+      //So yes: remove/replace those lines in the Socket.IO server.
+      // but running in loacalhost you should keep it for testing with cookie auth.
+      const cookies = parseCookies(socket.handshake.headers?.cookie || "");
+      const token = cookies.accessToken;
       if (!token) return next(new Error("NO_TOKEN"));
 
       const payload = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
@@ -3571,6 +3575,147 @@ if (!isVercel) {
   app.locals.io = null;
 }
 
+
+// --- OpenAI client ---
+// const OpenAI = require("openai");
+// const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+// POST /api/ai/proofread
+// Body: { text: string, tone?: "friendly"|"professional"|"casual" }
+// app.post("/api/ai/proofread", requireAuth, async (req, res) => {
+//   try {
+//     const text = String(req.body?.text ?? "");
+//     const tone = String(req.body?.tone ?? "").toLowerCase();
+
+//     if (!text.trim()) {
+//       return res.status(400).json({ error: { message: "text is required" } });
+//     }
+//     if (text.length > 5000) {
+//       return res.status(400).json({ error: { message: "Max 5000 characters" } });
+//     }
+
+//     const toneHint =
+//       tone === "friendly" ? "Friendly, warm, but not informal." :
+//       tone === "professional" ? "Professional, clear, and concise." :
+//       tone === "casual" ? "Casual, natural, and simple." :
+//       "Keep the original tone.";
+
+//     const instructions = [
+//       "You are a proofreading assistant.",
+//       "Fix spelling, grammar, punctuation, and awkward phrasing.",
+//       "Do NOT change the meaning or add new information.",
+//       "Preserve formatting (line breaks, bullets, emojis).",
+//       `Tone: ${toneHint}`,
+//       "Return ONLY the corrected text, no quotes, no explanations."
+//     ].join("\n");
+
+//     const response = await openai.responses.create({
+//       model: process.env.OPENAI_MODEL || "gpt-4o-mini" || "gpt-4o",
+//       instructions,
+//       input: text,
+//       max_output_tokens: 1200
+//     });
+
+//     return res.json({ data: { corrected: response.output_text } });
+//     // console.log("AI proofread success:", { input: text, corrected: response.output_text });
+//   } catch (err) {
+//   const status = err?.status || err?.response?.status;
+//   const msg = err?.message || "AI proofread failed";
+
+//   if (status === 429) {
+//     return res.status(503).json({
+//       error: { message: "AI is temporarily unavailable. Please try again later." }
+//     });
+//   }
+
+//   return res.status(500).json({ error: { message: msg } });
+// }
+
+// });
+
+
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+// ✅ AI Proofread (Gemini)
+app.post("/api/ai/proofread", requireAuth, async (req, res) => {
+  try {
+    const text = String(req.body?.text || "").trim();
+    const tone = String(req.body?.tone || "friendly").trim().toLowerCase();
+
+    if (!text) {
+      return res.status(400).json({ error: { message: "text is required" } });
+    }
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(500).json({ error: { message: "Missing GEMINI_API_KEY" } });
+    }
+
+    const model = process.env.GEMINI_MODEL || "gemini-2.5-flash"; // docs example model format :contentReference[oaicite:2]{index=2}
+
+    const toneHint =
+      tone === "professional"
+        ? "Professional, clear, polite."
+        : tone === "casual"
+        ? "Casual, friendly, simple."
+        : "Friendly, warm, helpful.";
+
+    const prompt = [
+      "You are a strict proofreading assistant.",
+      "Fix spelling, grammar, punctuation, and clarity WITHOUT changing meaning.",
+      `Tone: ${toneHint}`,
+      "Return ONLY the corrected text. No markdown, no explanations.",
+      "",
+      "TEXT:",
+      text,
+    ].join("\n");
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+
+    const r = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": process.env.GEMINI_API_KEY, // required header :contentReference[oaicite:3]{index=3}
+      },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 400,
+        },
+      }),
+    });
+
+    const data = await r.json().catch(() => ({}));
+
+    if (!r.ok) {
+      const msg =
+        data?.error?.message ||
+        data?.message ||
+        `Gemini request failed (${r.status})`;
+      return res.status(500).json({ error: { message: msg } });
+    }
+
+    const corrected =
+      (data?.candidates?.[0]?.content?.parts || [])
+        .map((p) => p?.text || "")
+        .join("")
+        .trim();
+
+    if (!corrected) {
+      return res.status(500).json({
+        error: { message: "Gemini returned empty output (maybe blocked or failed)." },
+        debug: { hasCandidates: !!data?.candidates?.length },
+      });
+    }
+
+    return res.json({ data: { corrected } });
+  } catch (err) {
+    console.error("Gemini proofread error:", err);
+    return res.status(500).json({ error: { message: "AI proofread failed" } });
+  }
+});
 
 
 
