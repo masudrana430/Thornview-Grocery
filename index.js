@@ -27,20 +27,40 @@ const cookie = require("cookie");
 //   ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON)
 //   : require("./sarviceKey.json");
 
-let serviceAccount;
 
-if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
-  serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+// ? befor deploy 
+// let serviceAccount;
 
-  if (serviceAccount.private_key) {
-    serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
-  }
-} else {
-  serviceAccount = require("./sarviceKey.json"); // local fallback
-}
+// if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+//   serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+
+//   if (serviceAccount.private_key) {
+//     serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
+//   }
+// } else {
+//   serviceAccount = require("./sarviceKey.json"); // local fallback
+// }
+//?or
+const serviceAccount = require("./sarviceKey.json");
+
+//? for deploy
+// const decoded = Buffer.from(process.env.FB_SERVICE_KEY, 'base64').toString('utf8')
+// const serviceAccount = JSON.parse(decoded);
+
+
+//? befor deploy 
+// socket.io:
+//const cookies = parseCookies(socket.handshake.headers?.cookie || "");
+      // const token = cookies.accessToken;
+//comment it
+
+// all console.log commented for deploy
+// await client.connect() commented for deploy
+// after deploying , uncomment it =====>>>> search it . and uncomment the console .log
 
 
 
+// for socket auth
 const { uploadRouter } = require("./chat/uploadRouter");
 const { adminChatRouter } = require("./chat/adminChatRouter");
 
@@ -68,7 +88,7 @@ for (const k of requiredEnv) {
 // ------------------- Middleware -------------------
 const allowedOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(",").map((s) => s.trim())
-  : ["http://localhost:5173", "http://localhost:5174", "https://thornview-grocery.netlify.app"];
+  : ["http://localhost:5173", "http://localhost:5174", "https://thomview-grocery.web.app"];
 
 app.use(
   cors({
@@ -97,7 +117,8 @@ if (!admin.apps.length) {
     projectId: serviceAccount.project_id,
   });
 }
-console.log("✅ Firebase Admin project_id:", serviceAccount.project_id);
+// console.log("✅ Firebase Admin project_id:", serviceAccount.project_id);
+// after deploy uncomment it
 
 // ------------------- MongoDB -------------------
 const uri = `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@thomview-dev.ahqcqe3.mongodb.net/?retryWrites=true&w=majority&appName=thomview-dev`;
@@ -3381,8 +3402,10 @@ if (!isVercel) {
       //If your socket server is on a different domain (Render) than your API (Vercel), the cookie accessToken set by the API will not be sent to the socket server (cross-domain). So this will fail:
       //So yes: remove/replace those lines in the Socket.IO server.
       // but running in loacalhost you should keep it for testing with cookie auth.
-      const cookies = parseCookies(socket.handshake.headers?.cookie || "");
-      const token = cookies.accessToken;
+      //?
+      // const cookies = parseCookies(socket.handshake.headers?.cookie || "");
+      // const token = cookies.accessToken;
+      //?
       if (!token) return next(new Error("NO_TOKEN"));
 
       const payload = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
@@ -3398,7 +3421,8 @@ if (!isVercel) {
   });
 
   io.on("connection", (socket) => {
-    console.log("✅ socket connected:", socket.id, socket.user);
+    // console.log("✅ socket connected:", socket.id, socket.user);
+    // after deploying , uncomment it
 
     const myId = String(socket.user.userId);
     const role = String(socket.user.role);
@@ -3436,7 +3460,8 @@ if (!isVercel) {
         if (!isAdmin && !participants.includes(myId)) return;
 
         socket.join(`conv:${id}`);
-        console.log("✅ joined room", `conv:${id}`, "by", myId);
+        // console.log("✅ joined room", `conv:${id}`, "by", myId);
+        // after deploying , uncomment it
       } catch (err) {
         console.error("conversation:join error:", err);
       }
@@ -4252,7 +4277,7 @@ let dbInitPromise = null;
 async function initDbOnce() {
   if (!dbInitPromise) {
     dbInitPromise = (async () => {
-      await client.connect(); 
+      // await client.connect(); 
       // ✅ IMPORTANT: connect here (don’t keep it commented)
       db = client.db(process.env.DB_NAME || "thomview");
 
@@ -4336,7 +4361,8 @@ async function initDbOnce() {
         try { await ordersCollection.dropIndex("orderNumber_1"); } catch {}
       }
 
-      console.log("✅ DB initialized");
+      // console.log("✅ DB initialized");
+      // after deploying , uncomment it
     })();
   }
 
