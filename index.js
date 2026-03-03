@@ -94,20 +94,24 @@ for (const k of requiredEnv) {
 }
 
 }
-
+app.set("trust proxy", 1);
 // ------------------- Middleware -------------------
 const allowedOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(",").map((s) => s.trim())
-  : ["http://localhost:5173", "http://localhost:5174", "https://thomview-grocery.web.app"];
+  : ["http://localhost:5173", "http://localhost:5174", "https://thomview-grocery.web.app" ,  "https://thomview-grocery.firebaseapp.com",];
 
-app.use(
-  cors({
-    origin: allowedOrigins,
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+
+
+app.use(cors({
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true); // allow non-browser tools
+    if (allowedOrigins.includes(origin)) return cb(null, true);
+    return cb(new Error(`CORS blocked: ${origin}`), false);
+  },
+  credentials: true,
+  methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
+  allowedHeaders: ["Content-Type","Authorization"],
+}));
 
 app.use(express.json({ limit: "2mb" }));
 app.use(cookieParser());
@@ -115,7 +119,6 @@ app.use(cookieParser());
 app.use("/api/admin/chat", adminChatRouter);
 app.use("/api/admin/uploads", uploadRouter);
 
-app.set("trust proxy", 1);
 
 
 
