@@ -41,11 +41,12 @@ const cookie = require("cookie");
 //   serviceAccount = require("./sarviceKey.json"); // local fallback
 // }
 //?or
-const serviceAccount = require("./sarviceKey.json");
+// const serviceAccount = require("./sarviceKey.json");
 
 //? for deploy
-// const decoded = Buffer.from(process.env.FB_SERVICE_KEY, 'base64').toString('utf8')
-// const serviceAccount = JSON.parse(decoded);
+const decoded = Buffer.from(process.env.FB_SERVICE_KEY, 'base64').toString('utf8')
+const serviceAccount = JSON.parse(decoded);
+// or
 
 
 //? befor deploy 
