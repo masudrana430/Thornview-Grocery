@@ -115,7 +115,7 @@ app.use(cookieParser());
 app.use("/api/admin/chat", adminChatRouter);
 app.use("/api/admin/uploads", uploadRouter);
 
-
+app.set("trust proxy", 1);
 
 
 
@@ -438,6 +438,7 @@ function setAuthCookies(res, accessToken, refreshToken) {
     httpOnly: true,
     secure: isProd,
     sameSite: isProd ? "none" : "lax",
+    path: "/"
   };
 
   res.cookie("accessToken", accessToken, { ...base, maxAge: 1000 * 60 * 60 }); // 1h
