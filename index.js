@@ -44,10 +44,19 @@ const cookie = require("cookie");
 // const serviceAccount = require("./sarviceKey.json");
 
 //? for deploy
-const decoded = Buffer.from(process.env.FB_SERVICE_KEY, 'base64').toString('utf8')
-const serviceAccount = JSON.parse(decoded);
+// const decoded = Buffer.from(process.env.FB_SERVICE_KEY, 'base64').toString('utf8')
+// const serviceAccount = JSON.parse(decoded);
 // or
+let serviceAccount;
 
+if (process.env.FB_SERVICE_KEY) {
+  // FB_SERVICE_KEY should be base64 of the whole JSON file
+  const decoded = Buffer.from(process.env.FB_SERVICE_KEY, "base64").toString("utf8");
+  serviceAccount = JSON.parse(decoded);
+} else {
+  // local dev fallback (only if the file exists locally)
+  serviceAccount = require("./sarviceKey.json");
+}
 
 //? befor deploy 
 // socket.io:
