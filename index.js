@@ -41,22 +41,22 @@ const cookie = require("cookie");
 //   serviceAccount = require("./sarviceKey.json"); // local fallback
 // }
 //?or
-// const serviceAccount = require("./sarviceKey.json");
+const serviceAccount = require("./sarviceKey.json");
 
 //? for deploy
 // const decoded = Buffer.from(process.env.FB_SERVICE_KEY, 'base64').toString('utf8')
 // const serviceAccount = JSON.parse(decoded);
 // or
-let serviceAccount;
+// let serviceAccount;
 
-if (process.env.FB_SERVICE_KEY) {
-  // FB_SERVICE_KEY should be base64 of the whole JSON file
-  const decoded = Buffer.from(process.env.FB_SERVICE_KEY, "base64").toString("utf8");
-  serviceAccount = JSON.parse(decoded);
-} else {
-  // local dev fallback (only if the file exists locally)
-  serviceAccount = require("./sarviceKey.json");
-}
+// if (process.env.FB_SERVICE_KEY) {
+//   // FB_SERVICE_KEY should be base64 of the whole JSON file
+//   const decoded = Buffer.from(process.env.FB_SERVICE_KEY, "base64").toString("utf8");
+//   serviceAccount = JSON.parse(decoded);
+// } else {
+//   // local dev fallback (only if the file exists locally)
+//   serviceAccount = require("./sarviceKey.json");
+// }
 
 //? befor deploy 
 // socket.io:
@@ -94,7 +94,10 @@ for (const k of requiredEnv) {
 }
 
 }
+// Fix middleware order: trust proxy should be before cookies/routes
+// after adding app.set it fixed deploy in railway
 app.set("trust proxy", 1);
+
 // ------------------- Middleware -------------------
 const allowedOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(",").map((s) => s.trim())
@@ -1838,6 +1841,50 @@ app.put(
  * - sort=featured|newest|price_asc|price_desc
  * - page, limit
  */
+
+// ------------------- Product Suggest (SearchBox) -------------------
+// GET /api/products/suggest?q=milk&limit=8
+app.get("/api/products/suggest", async (req, res) => {
+  try {
+    const q = String(req.query.q || "").trim();
+    const limit = Math.min(Math.max(parseInt(req.query.limit || "8", 10), 1), 20);
+
+    if (!q) return res.json({ data: { items: [] } });
+
+    // simple + reliable (no text-index dependency)
+    const rx = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+
+    const items = await productsCollection
+      .find(
+        {
+          isActive: { $ne: false },
+          $or: [{ name: rx }, { brand: rx }],
+        },
+        {
+          projection: {
+            name: 1,
+            slug: 1,
+            price: 1,
+            oldPrice: 1,
+            image: 1,
+            brand: 1,
+            inStock: 1,
+            createdAt: 1,
+          },
+        }
+      )
+      .sort({ inStock: -1, createdAt: -1 })
+      .limit(limit)
+      .toArray();
+
+    return res.json({ data: { items } });
+  } catch (err) {
+    console.error("GET /api/products/suggest error:", err);
+    return res.status(500).json({
+      error: { code: "SERVER_ERROR", message: "Failed to load suggestions" },
+    });
+  }
+});
 // ------------------- PRODUCTS (Category + Search with facets + pagination) -------------------
 // GET /api/products
 app.get("/api/products", async (req, res) => {
@@ -2180,87 +2227,11 @@ app.get("/api/categories", async (_req, res) => {
   }
 });
 
-// Suggest endpoint for search box (fast + small payload)
-// GET /api/products/suggest?q=milk&limit=8
-// ------------------- Product Suggest (SearchBox) -------------------
-// GET /api/products/suggest?q=milk&limit=8
-app.get("/api/products/suggest", async (req, res) => {
-  try {
-    const q = String(req.query.q || "").trim();
-    const limit = Math.min(Math.max(parseInt(req.query.limit || "8", 10), 1), 20);
 
-    if (!q) return res.json({ data: { items: [] } });
 
-    // simple + reliable (no text-index dependency)
-    const rx = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
-
-    const items = await productsCollection
-      .find(
-        {
-          isActive: { $ne: false },
-          $or: [{ name: rx }, { brand: rx }],
-        },
-        {
-          projection: {
-            name: 1,
-            slug: 1,
-            price: 1,
-            oldPrice: 1,
-            image: 1,
-            brand: 1,
-            inStock: 1,
-            createdAt: 1,
-          },
-        }
-      )
-      .sort({ inStock: -1, createdAt: -1 })
-      .limit(limit)
-      .toArray();
-
-    return res.json({ data: { items } });
-  } catch (err) {
-    console.error("GET /api/products/suggest error:", err);
-    return res.status(500).json({
-      error: { code: "SERVER_ERROR", message: "Failed to load suggestions" },
-    });
-  }
-});
 
 // ✅ GET /api/products/suggest?q=milk
-app.get("/api/products/suggest", async (req, res) => {
-  try {
-    const q = String(req.query.q || "").trim();
-    if (!q) return res.json({ data: { items: [] } });
 
-    // Use text search if available; fallback regex if no index
-    const filter = { isActive: { $ne: false } };
-
-    // if you created text index, this will work great
-    filter.$text = { $search: q };
-
-    const items = await productsCollection
-      .find(filter, {
-        projection: { name: 1, price: 1, image: 1, images: 1, slug: 1 },
-      })
-      .limit(8)
-      .toArray();
-
-    return res.json({
-      data: {
-        items: items.map((p) => ({
-          _id: p._id,
-          title: p.name,
-          price: p.price,
-          images: p.images?.length ? p.images : p.image ? [p.image] : [],
-          slug: p.slug || "",
-        })),
-      },
-    });
-  } catch (err) {
-    console.error("GET /api/products/suggest error:", err);
-    return res.json({ data: { items: [] } });
-  }
-});
 
 
 // GET /api/delivery/slots?mode=delivery|pickup&date=YYYY-MM-DD
